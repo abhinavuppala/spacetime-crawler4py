@@ -1,6 +1,13 @@
 import re
 from urllib.parse import urlparse
 
+DOMAIN_WHITELIST = (
+    "ics.uci.edu",
+    "cs.uci.edu",
+    "informatics.uci.edu",
+    "stat.uci.edu",
+)
+
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
