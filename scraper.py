@@ -293,6 +293,11 @@ def is_valid(url):
             logger.debug(f"Suspicious query: {url}")
             return False
 
+        # avoid DokuWiki media-manager navigation traps
+        if is_dokuwiki_trap(url):
+            logger.debug(f"DokuWiki media trap: {url}")
+            return False
+
         # otherwise its good
         return True
 
@@ -303,6 +308,42 @@ def is_valid(url):
     except ValueError:
         logger.warning(f"ValueError for {url}")
         return False
+
+
+def is_dokuwiki_trap(url):
+    """
+    Avoid DokuWiki utility pages that can generate large
+    numbers of low-information URL combinations.
+    """
+    parsed = urlparse(url)
+
+    if parsed.hostname != "wiki.ics.uci.edu":
+        return False
+
+    if not parsed.path.startswith("/doku.php"):
+        return False
+
+    params = dict(parse_qsl(
+        parsed.query,
+        keep_blank_values=True
+    ))
+
+    # utility actions that don't represent regular wiki articles
+    blocked_actions = {
+        "media",
+        "diff",
+        "revisions",
+        "edit",
+    }
+
+    if params.get("do") in blocked_actions:
+        return True
+
+    # historical versions of otherwise normal wiki pages
+    if "rev" in params or "rev2[0]" in params or "rev2[1]" in params:
+        return True
+
+    return False
 
 
 def normalize_url(url):
