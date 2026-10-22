@@ -14,6 +14,7 @@ from utils import get_logger
 from analytics import Analytics
 from duplicates import DuplicateDetector
 
+print("| Running with anti-doku.php wiki + general version-history query params excluded |")
 
 DOMAIN_WHITELIST = (
     "ics.uci.edu",
@@ -76,8 +77,17 @@ atexit.register(
 )
 
 # filter out certain query params
-# empty for now until more testing has been done
-TRACKING_PARAMS = set()
+TRACKING_PARAMS = {
+    # these 5 often are associated with version history of wiki pages
+    # observed in cases like
+    # https://grape.ics.uci.edu/wiki/public/wiki/cs122a-2016-spring?format=txt&version=46
+    # https://wiki.ics.uci.edu/doku.php/commands:screen?do=diff&rev2%5B0%5D=1453499462&rev2%5B1%5D=1453503408&difftype=sidebyside
+    "version",
+    "rev",
+    "rev2[0]",
+    "rev2[1]",
+    "oldid",
+}
 
 # guesstimate limits for detecting obvious URL traps
 MAX_URL_LENGTH = 2048       # chars
@@ -328,19 +338,24 @@ def is_dokuwiki_trap(url):
         keep_blank_values=True
     ))
 
-    # utility actions that don't represent regular wiki articles
     blocked_actions = {
         "media",
         "diff",
         "revisions",
         "edit",
+        "backlink",
+        "recent",
+        "index",
+        "login",
     }
 
     if params.get("do") in blocked_actions:
         return True
 
-    # historical versions of otherwise normal wiki pages
-    if "rev" in params or "rev2[0]" in params or "rev2[1]" in params:
+    if any(
+        key in params
+        for key in ("rev", "rev2[0]", "rev2[1]", "idx")
+    ):
         return True
 
     return False
