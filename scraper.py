@@ -1,6 +1,7 @@
 import re
 import logging
 from pathlib import Path
+import atexit
 
 from urllib.parse import (
     urlparse, urldefrag, urljoin,
@@ -11,6 +12,7 @@ from bs4 import BeautifulSoup
 
 from utils import get_logger
 from analytics import Analytics
+from duplicates import DuplicateDetector
 
 
 DOMAIN_WHITELIST = (
@@ -47,10 +49,45 @@ assert len(STOPWORDS) == 174, f"Expected 174 stopwords, got {len(STOPWORDS)}"
 
 # for assignment metrics
 analytics = Analytics(STOPWORDS)
+duplicates = DuplicateDetector()
+
+# register callback functions to close the shelves on exit
+atexit.register(duplicates.close)
+atexit.register(analytics.close)
+
+# basic crawl statistics for monitoring
+# callback to print them on exit
+crawl_stats = {
+    "processed": 0,
+    "failed": 0,
+    "oversized": 0,
+    "low_info": 0,
+    "duplicates": 0,
+    "links_found": 0,
+    "links_rejected": 0,
+}
+atexit.register(
+    lambda: print(
+        "Crawl Analytics (since crawler start/resume):\n"
+        + "\n".join(
+            f"{key}: {value}" for key, value in crawl_stats.items()
+        )
+    )
+)
 
 # filter out certain query params
 # empty for now until more testing has been done
 TRACKING_PARAMS = set()
+
+# guesstimate limits for detecting obvious URL traps
+MAX_URL_LENGTH = 2048       # chars
+MAX_PATH_DEPTH = 20
+MAX_QUERY_PARAMS = 15       
+MAX_REPEATED_SEGMENTS = 3   # like /calendar/calendar/calendar/...
+
+# reasonable(?) page content thresholds
+MAX_CONTENT_SIZE = 5 * 1024 * 1024
+
 
 logger = get_logger(f"SCRAPER") # shared logger
 logger.setLevel(logging.DEBUG) # DEBUG for development
@@ -58,11 +95,21 @@ logger.setLevel(logging.DEBUG) # DEBUG for development
 def scraper(url, resp):
     try:
         links = extract_next_links(url, resp)
-        return [link for link in links if is_valid(link)]
+        valid_links = [link for link in links if is_valid(link)]
+
+        # log number of links rejected & number of links found
+        crawl_stats["links_found"] += len(links)
+        crawl_stats["links_rejected"] += (
+            len(links) - len(valid_links)
+        )
+
+        return valid_links
+
     except Exception:
         # wrap in a try except to log errors better
         # logger.exception already includes stack trace and logger name has URL
         logger.exception(f"Failed to scrape url {url}")
+        crawl_stats["failed"] += 1
         return []
 
 def extract_next_links(url, resp):
@@ -84,13 +131,34 @@ def extract_next_links(url, resp):
         or resp.raw_response is None
         or not resp.raw_response.content
     ):
+        logger.debug(
+            f"Skipping content (status={resp.status}): {url}"
+        )
+        crawl_stats["failed"] += 1
         return []
 
     base = resp.raw_response.url or url
+    # another check for redundancy. cheap since we're network & politeness time-bound
+    if not is_valid(base):
+        logger.warning(
+            f"Invalid URL: {base}"
+        )
+        crawl_stats["failed"] += 1
+        return []
+
+    # avoid processing extremely large HTML responses
+    content = resp.raw_response.content
+    if len(content) > MAX_CONTENT_SIZE:
+        logger.warning(
+            f"Oversized page ({len(content)} bytes): {base}"
+        )
+        crawl_stats["oversized"] += 1
+        return []
+    
     links = set()
 
     # look for all <a> tags with hrefs to find outgoing links
-    soup = BeautifulSoup(resp.raw_response.content, "html.parser")
+    soup = BeautifulSoup(content, "html.parser")
     for a in soup.find_all("a", href=True):
         try:
             # urljoin accounts for absolute or relative links
@@ -102,15 +170,88 @@ def extract_next_links(url, resp):
             continue
     logger.info(f"Found {len(links)} links from {url}.")
 
-    # record page statistics after extracting links
-    try:
-        normalized = normalize_url(base)
-        if normalized:
+    # remove non-text elements
+    for tag in soup(["script", "style", "noscript", "template"]):
+        tag.decompose()
+
+    # get text for checking identical match
+    text = soup.get_text(separator=" ", strip=True)
+
+    normalized = normalize_url(base)
+
+    if normalized:
+        # check for identical text across different URLs
+        try:
+            original_url = duplicates.check_duplicate(
+                normalized, text
+            )
+            # returns None if there's no duplicate. Otherwise it's duplicated
+            if original_url and original_url != normalized:
+                logger.info(
+                    f"Duplicate content: {normalized} "
+                    f"(same as {original_url})"
+                )
+                crawl_stats["duplicates"] += 1
+
+        except Exception:
+            logger.exception(
+                f"Failed duplicate detection for {base}"
+            )
+
+        # record page statistics for assignment
+        try:
             analytics.record_page(normalized, soup)
-    except Exception:
-        logger.exception(f"Failed to record statistics for {base}")
+
+        except Exception:
+            logger.exception(
+                f"Failed to record statistics for {base}"
+            )
+
+    crawl_stats["processed"] += 1
 
     return list(links) # convert to list
+
+
+def has_repeated_path(url):
+    """
+    Detect excessively deep paths or
+    consecutive repeated path segments
+    """
+    parsed = urlparse(url)
+    segments = [
+        segment.lower()
+        for segment in parsed.path.split("/")
+        if segment
+    ]
+
+    # check for max path depth in general. not necessarily repeated
+    if len(segments) > MAX_PATH_DEPTH:
+        return True
+
+    # detect paths such as /events/events/events/
+    repeated = 1
+    for i in range(1, len(segments)):
+        if segments[i] == segments[i - 1]:
+            repeated += 1
+            if repeated >= MAX_REPEATED_SEGMENTS:
+                return True
+        else:
+            repeated = 1
+
+    return False
+
+def has_suspicious_query(url):
+    """
+    Detect URLs with unusually many query parameters
+    no blacklisting specific query params (yet?)
+    """
+    parsed = urlparse(url)
+    params = parse_qsl(
+        parsed.query,
+        keep_blank_values=True
+    )
+
+    return len(params) > MAX_QUERY_PARAMS
 
 
 def is_valid(url):
@@ -121,7 +262,12 @@ def is_valid(url):
     """
     try:
         parsed = urlparse(url)
-        if parsed.scheme not in set(["http", "https"]):
+        if parsed.scheme not in ("http", "https"):
+            return False
+
+        # enforce max url length
+        if not url or len(url) > MAX_URL_LENGTH:
+            logger.debug(f"Invalid URL length: {url}")
             return False
 
         # Make sure we exact match the host or end with it
@@ -134,7 +280,21 @@ def is_valid(url):
             return False
 
         # ignore unreadable filetypes
-        return not re.match(INVALID_EXTENSIONS, parsed.path.lower())
+        if re.match(INVALID_EXTENSIONS, parsed.path.lower()):
+            return False
+
+        # reject excessively deep or repetitive paths
+        if has_repeated_path(url):
+            logger.debug(f"Suspicious path: {url}")
+            return False
+
+        # reject URLs with excessive query parameters
+        if has_suspicious_query(url):
+            logger.debug(f"Suspicious query: {url}")
+            return False
+
+        # otherwise its good
+        return True
 
     # Error --> assume it's invalid
     except TypeError:
