@@ -1,7 +1,12 @@
 import re
 import logging
+from pathlib import Path
 
-from urllib.parse import urlparse, urldefrag, urljoin
+from urllib.parse import (
+    urlparse, urldefrag, urljoin,
+    urlsplit, urlunsplit, urlencode,
+    quote, parse_qsl
+)
 from bs4 import BeautifulSoup
 
 from utils import get_logger
@@ -12,6 +17,35 @@ DOMAIN_WHITELIST = (
     "informatics.uci.edu",
     "stat.uci.edu",
 )
+
+# file extensions that arent parseable
+INVALID_EXTENSIONS = (
+    r".*\.(css|js|bmp|gif|jpe?g|ico"
+    + r"|png|tiff?|mid|mp2|mp3|mp4"
+    + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+    + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+    + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+    + r"|epub|dll|cnf|tgz|sha1"
+    + r"|thmx|mso|arff|rtf|jar|csv"
+    + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
+)
+
+# read stopwords from a text file
+STOPWORDS = []
+stopwords_file = Path('stopwords.txt')
+with stopwords_file.open('r') as f:
+    STOPWORDS = list(filter(
+        lambda word: word,
+        map(
+            lambda line: line.strip('\n'),
+            f.readlines()
+        )
+    ))
+assert len(STOPWORDS) == 174, f"Expected 174 stopwords, got {len(STOPWORDS)}"
+
+# filter out certain query params
+# empty for now until more testing has been done
+TRACKING_PARAMS = set()
 
 logger = get_logger(f"SCRAPER") # shared logger
 logger.setLevel(logging.DEBUG) # DEBUG for development
@@ -56,10 +90,12 @@ def extract_next_links(url, resp):
         try:
             # urljoin accounts for absolute or relative links
             abs_link = urljoin(base, a["href"].strip())
-            # removes any # sections from the URL
-            links.add(urldefrag(abs_link)[0])
+            normalized = normalize_url(abs_link)
+            if normalized:
+                links.add(normalized)
         except ValueError: # skip any malformed links
             continue
+    logger.info(f"Found {len(links)} links from {url}.")
     return list(links) # convert to list
 
 
@@ -84,15 +120,7 @@ def is_valid(url):
             return False
 
         # ignore unreadable filetypes
-        return not re.match(
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+        return not re.match(INVALID_EXTENSIONS, parsed.path.lower())
 
     # Error --> assume it's invalid
     except TypeError:
@@ -101,3 +129,26 @@ def is_valid(url):
     except ValueError:
         logger.warning(f"ValueError for {url}")
         return False
+
+
+def normalize_url(url):
+    try:
+        if not url:
+            return None
+
+        url = url.strip()
+        parsed = urlsplit(url)
+
+        if parsed.scheme.lower() not in ("http", "https"):
+            return None
+
+        if not parsed.hostname:
+            return None
+
+        # only transformation we do is defragmentation
+        # other changes could cause distinct URLs to be lumped together
+        # any changes to this would be coupled to the frontier
+        return urldefrag(url)[0]
+
+    except (TypeError, ValueError):
+        return None
