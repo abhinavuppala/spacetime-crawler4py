@@ -10,6 +10,8 @@ from urllib.parse import (
 from bs4 import BeautifulSoup
 
 from utils import get_logger
+from analytics import Analytics
+
 
 DOMAIN_WHITELIST = (
     "ics.uci.edu",
@@ -42,6 +44,9 @@ with stopwords_file.open('r') as f:
         )
     ))
 assert len(STOPWORDS) == 174, f"Expected 174 stopwords, got {len(STOPWORDS)}"
+
+# for assignment metrics
+analytics = Analytics(STOPWORDS)
 
 # filter out certain query params
 # empty for now until more testing has been done
@@ -96,6 +101,15 @@ def extract_next_links(url, resp):
         except ValueError: # skip any malformed links
             continue
     logger.info(f"Found {len(links)} links from {url}.")
+
+    # record page statistics after extracting links
+    try:
+        normalized = normalize_url(base)
+        if normalized:
+            analytics.record_page(normalized, soup)
+    except Exception:
+        logger.exception(f"Failed to record statistics for {base}")
+
     return list(links) # convert to list
 
 

@@ -107,4 +107,5 @@ venv.bak/
 .vscode/
 
 *.full.py
-*.shelve
+# removing .shelve from gitignore so that we don't lose the report
+# may not be best pratcice...?
