@@ -3,6 +3,13 @@ import logging
 from pathlib import Path
 import atexit
 
+"""
+TODO
+- check circinus-33 tmux session
+tmux attach -t crawler
+ctrl c to stop it, then resume with prior command
+"""
+
 from urllib.parse import (
     urlparse, urldefrag, urljoin,
     urlsplit, urlunsplit, urlencode,
@@ -171,6 +178,16 @@ def extract_next_links(url, resp):
         return []
     
     links = set()
+
+    content_type = resp.raw_response.headers.get("Content-Type", "").lower()
+
+    # skip non-HTML content pages
+    if content_type and not (
+        "text/html" in content_type
+        or "application/xhtml+xml" in content_type
+    ):
+        logger.debug(f"Skipping non-HTML content: {base}")
+        return []
 
     # look for all <a> tags with hrefs to find outgoing links
     soup = BeautifulSoup(content, "html.parser")
@@ -390,6 +407,31 @@ def has_known_trap(url):
         if re.search(
             r"/events/(?:.*/)?day/\d{4}-\d{2}-\d{2}/?$",
             path
+        ):
+            return True
+
+    # seen in the flamingo.ics.uci.edu page
+    if (
+        set(params).issubset({"c", "o"})
+        and "c" in params
+        and "o" in params
+    ):
+        return True
+
+    # wics calendar navigation
+    if host == "wics.ics.uci.edu":
+        # daily and monthly event archives
+        if re.search(
+            r"/events/(?:.*/)?\d{4}-\d{2}(?:-\d{2})?/?$",
+            path
+        ):
+            return True
+
+        # calendar views through query parameters
+        if (
+            params.get("post_type") == "tribe_events"
+            or "eventdate" in params
+            or "eventdisplay" in params
         ):
             return True
 
