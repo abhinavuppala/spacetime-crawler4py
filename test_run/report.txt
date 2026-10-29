@@ -1,0 +1,199 @@
+Total unique pages: 71502
+
+
+Longest page: https://ics.uci.edu/~kay/courses/h22/hw/DVD-random.txt
+Word count: 704921
+
+
+Top 50 words:
+support: 325613
+data: 299046
+ics: 209887
+wiki: 178509
+tools: 161588
+will: 148472
+research: 140359
+uci: 129439
+sitemap: 127295
+group: 122092
+systems: 118840
+isg: 96290
+edu: 95317
+software: 94064
+events: 93987
+project: 93908
+database: 88115
+services: 85644
+page: 82604
+hardware: 80444
+security: 79896
+can: 79457
+user: 77103
+environments: 76328
+file: 73436
+virtual: 72624
+dbh: 72607
+accounts: 70878
+science: 70639
+https: 69082
+backups: 68749
+changes: 65768
+storage: 64126
+media: 63933
+years: 63160
+using: 62796
+search: 61804
+recent: 61168
+projects: 60619
+manager: 60171
+computing: 60006
+end: 59330
+work: 58608
+use: 58595
+information: 58104
+los: 57662
+angeles: 57569
+time: 57456
+america: 56944
+based: 56519
+
+
+ICS subdomains:
+http://accessibility.ics.uci.edu, 6
+http://acoi.ics.uci.edu, 26
+http://archive-beta.ics.uci.edu, 11
+http://archive.ics.uci.edu, 216
+http://asterix.ics.uci.edu, 9
+http://cert.ics.uci.edu, 47
+http://chenli.ics.uci.edu, 6
+http://cloudberry.ics.uci.edu, 8
+http://code.ics.uci.edu, 13
+http://computableplant.ics.uci.edu, 125
+http://containers.ics.uci.edu, 1
+http://courselisting.ics.uci.edu, 4
+http://create.ics.uci.edu, 7
+http://cs.ics.uci.edu, 11
+http://dale-cooper-v0.ics.uci.edu, 222
+http://denali-submit.ics.uci.edu, 3
+http://ds4all.ics.uci.edu, 3
+http://dynamo.ics.uci.edu, 33
+http://e2.ics.uci.edu, 1
+http://edgelab.ics.uci.edu, 7
+http://emj.ics.uci.edu, 38
+http://flamingo.ics.uci.edu, 2353
+http://fr.ics.uci.edu, 1
+http://gradinfo.ics.uci.edu, 2
+http://grape.ics.uci.edu, 7045
+http://graphics.ics.uci.edu, 1
+http://helpdesk.ics.uci.edu, 10
+http://hiring.ics.uci.edu, 2
+http://hobbes.ics.uci.edu, 11
+http://hpi.ics.uci.edu, 5
+http://hub.ics.uci.edu, 1
+http://i-sensorium.ics.uci.edu, 5
+http://icde2023.ics.uci.edu, 45
+http://industryshowcase.ics.uci.edu, 21
+http://informatics.ics.uci.edu, 18
+http://intranet.ics.uci.edu, 933
+http://ipubmed.ics.uci.edu, 1
+http://isg.ics.uci.edu, 6665
+http://jgarcia.ics.uci.edu, 37
+http://mailman.ics.uci.edu, 37
+http://malek.ics.uci.edu, 1
+http://mcs.ics.uci.edu, 11
+http://mds.ics.uci.edu, 9
+http://mhcid.ics.uci.edu, 17
+http://mover.ics.uci.edu, 23
+http://mswe.ics.uci.edu, 3
+http://nalini.ics.uci.edu, 4
+http://netreg.ics.uci.edu, 1
+http://ngs.ics.uci.edu, 2025
+http://oai.ics.uci.edu, 2
+http://onboarding.ics.uci.edu, 1
+http://password.ics.uci.edu, 9
+http://purchase.ics.uci.edu, 1
+http://rt5.ics.uci.edu, 1
+http://sana.ics.uci.edu, 4
+http://scale.ics.uci.edu, 7
+http://seal.ics.uci.edu, 48
+http://sherlock.ics.uci.edu, 7
+http://signage.ics.uci.edu, 2
+http://sparcfire.ics.uci.edu, 3
+http://stat.ics.uci.edu, 5
+http://support.ics.uci.edu, 3
+http://tutoring.ics.uci.edu, 5
+http://vision.ics.uci.edu, 220
+http://wics.ics.uci.edu, 1260
+http://wiki.ics.uci.edu, 46177
+http://www-db.ics.uci.edu, 3
+http://xtune.ics.uci.edu, 6
+
+
+Total ICS subdomains: 68
+
+Top 20 longest pages:
+704921 https://ics.uci.edu/~kay/courses/h22/hw/DVD-random.txt
+704921 https://ics.uci.edu/~kay/courses/h22/hw/DVD.txt
+475850 https://ics.uci.edu/~kay/wordlist.txt
+445671 https://ics.uci.edu/~dvk/pub/C16_SIGMOD14_Jeffrey.ppsx
+408169 https://ics.uci.edu/~seal/projects/deldroid/ArchManager.apk
+363776 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2018-winter-project5
+363738 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2018-spring-project5
+345648 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2016-spring-project2
+343308 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2017-winter-project2
+329573 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2017-winter-project5
+239928 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2018-spring-project1-eclipse-project
+229126 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2018-winter-project2
+171735 https://ics.uci.edu/~ttrbst/phd_thesis
+152781 https://ics.uci.edu/~dsm/aquascale/documents/aric_workshop_2020
+133995 https://grape.ics.uci.edu/wiki/public/zip-attachment/wiki/cs122b-2018-winter-project1-eclipse-project
+127062 https://grape.ics.uci.edu/wiki/public/raw-attachment/wiki/cs122b-2017-spring-project3/TomcatFormReCaptcha.war
+126956 https://grape.ics.uci.edu/wiki/public/raw-attachment/wiki/cs122b-2018-winter-project3/TomcatFormReCaptcha.war
+126920 https://grape.ics.uci.edu/wiki/public/raw-attachment/wiki/cs122b-2017-winter-project3/TomcatFormReCaptcha.war
+126713 https://grape.ics.uci.edu/wiki/public/raw-attachment/wiki/cs221-2019-spring-project2/Team2StressTest.txt
+126495 https://grape.ics.uci.edu/wiki/public/raw-attachment/wiki/cs122b-2017-spring-project3/TomcatFormReCaptcha.2.war
+
+Longest page top words:
+1: 63084
+00: 54781
+0: 41970
+3: 24503
+4: 24112
+33: 18922
+2: 18264
+nr: 16789
+98: 12370
+99: 9643
+5: 8613
+02: 7769
+24: 7619
+9: 7510
+95: 7369
+19: 6997
+lbx: 6677
+01: 5698
+29: 5219
+music: 4836
+unk: 4474
+special: 4456
+16: 4435
+r: 4395
+03: 4069
+85: 3921
+14: 3417
+11: 3381
+drama: 3245
+10: 3112
+
+Potential trap URLs:
+do=diff: 848
+idx=: 39717
+version=: 6312
+tribe-bar-date=: 2913
+/day/: 1722
+
+Domain coverage:
+ics.uci.edu: 71501
+cs.uci.edu: 0
+informatics.uci.edu: 0
+stat.uci.edu: 0

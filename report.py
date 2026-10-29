@@ -11,5 +11,6 @@ analytics = Analytics(stopwords)
 
 try:
     analytics.generate_report()
+    analytics.generate_diagnostics()
 finally:
     analytics.close()

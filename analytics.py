@@ -39,10 +39,12 @@ class Analytics:
         words = re.findall(r"[a-z0-9]+", text.lower())
         word_count = len(words)
 
-        # exclude stopwords for the top 50 words statistic
+        # exclude stopwords and tokens shorter than 3 characters
+        # for the top 50 word frequency statistic
         frequencies = Counter(
             word for word in words
-            if word not in self.stopwords
+            if len(word) >= 3
+            and word not in self.stopwords
         )
 
         # save the page's statistics
@@ -78,12 +80,17 @@ class Analytics:
             total_pages += 1
 
             # track longest page
-            if word_count > longest_count:
+            if longest_url is None or word_count > longest_count:
                 longest_url = url
                 longest_count = word_count
 
             # aggregate word frequencies
-            word_frequencies.update(page["frequencies"])
+            # + backwards compatibility before length 3+ filtered out
+            word_frequencies.update({
+                word: count
+                for word, count in page["frequencies"].items()
+                if len(word) >= 3
+            })
 
             # track ICS subdomains
             hostname = urlparse(url).hostname
@@ -108,6 +115,89 @@ class Analytics:
             print(f"http://{hostname}, {subdomain_counts[hostname]}")
         print()
         print(f"\nTotal ICS subdomains: {len(subdomain_counts)}")
+
+    def generate_diagnostics(self):
+        """
+        get additional analytics for debugging/investigating traps
+        """
+        pages = list(self.save.values())
+
+        # 1. longest pages in the crawl
+        print("\nTop 20 longest pages:")
+
+        longest_pages = sorted(
+            pages,
+            key=lambda page: page["word_count"],
+            reverse=True
+        )[:20]
+
+        for page in longest_pages:
+            print(f"{page['word_count']} {page['url']}")
+
+        # 2. inspect word frequencies on the longest page
+        if longest_pages:
+            longest = longest_pages[0]
+
+            print("\nLongest page top words:")
+            for word, count in longest["frequencies"].most_common(30):
+                print(f"{word}: {count}")
+
+        # 3. count known trap URL patterns
+        # we want to see if these are being hit
+        patterns = [
+            "do=diff",
+            "idx=",
+            "version=",
+            "tribe-bar-date=",
+            "/day/",
+        ]
+
+        print("\nPotential trap URLs:")
+        for pattern in patterns:
+            count = sum(
+                pattern in page["url"].lower()
+                for page in pages
+            )
+            print(f"{pattern}: {count}")
+
+        # 4. inspect coverage of the required domains
+        domain_counts = Counter()
+
+        for page in pages:
+            hostname = urlparse(page["url"]).hostname or ""
+
+            if (
+                hostname == "ics.uci.edu"
+                or hostname.endswith(".ics.uci.edu")
+            ):
+                domain_counts["ics.uci.edu"] += 1
+
+            elif (
+                hostname == "cs.uci.edu"
+                or hostname.endswith(".cs.uci.edu")
+            ):
+                domain_counts["cs.uci.edu"] += 1
+
+            elif (
+                hostname == "informatics.uci.edu"
+                or hostname.endswith(".informatics.uci.edu")
+            ):
+                domain_counts["informatics.uci.edu"] += 1
+
+            elif (
+                hostname == "stat.uci.edu"
+                or hostname.endswith(".stat.uci.edu")
+            ):
+                domain_counts["stat.uci.edu"] += 1
+
+        print("\nDomain coverage:")
+        for domain in (
+            "ics.uci.edu",
+            "cs.uci.edu",
+            "informatics.uci.edu",
+            "stat.uci.edu",
+        ):
+            print(f"{domain}: {domain_counts[domain]}")
 
     def close(self):
         self.save.close()

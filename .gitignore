@@ -107,5 +107,8 @@ venv.bak/
 .vscode/
 
 *.full.py
-# removing .shelve from gitignore so that we don't lose the report
-# may not be best pratcice...?
+
+# RE-add shelve back to the gitignore
+# initially was worried about not having it on different devices
+# but I forgot I was using openlab so it doesnt matter
+*.shelve

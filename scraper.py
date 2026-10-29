@@ -14,7 +14,9 @@ from utils import get_logger
 from analytics import Analytics
 from duplicates import DuplicateDetector
 
-print("| Running with anti-doku.php wiki + general version-history query params excluded |")
+print("| Running with anti-doku.php wiki trap filters")
+print("| + general version-history query params excluded")
+print("| + filtering out ISG calendar dates/events")
 
 DOMAIN_WHITELIST = (
     "ics.uci.edu",
@@ -32,6 +34,9 @@ INVALID_EXTENSIONS = (
     + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
     + r"|epub|dll|cnf|tgz|sha1"
     + r"|thmx|mso|arff|rtf|jar|csv"
+    + r"|txt" # ignore large junk text files
+    + r"|ics" # calendar file type
+    + r"|ppsx|apk|war|ear|class|pyc"
     + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$"
 )
 
@@ -303,9 +308,9 @@ def is_valid(url):
             logger.debug(f"Suspicious query: {url}")
             return False
 
-        # avoid DokuWiki media-manager navigation traps
-        if is_dokuwiki_trap(url):
-            logger.debug(f"DokuWiki media trap: {url}")
+        # evaluate against known traps
+        if has_known_trap(url):
+            logger.debug(f"Known crawl trap: {url}")
             return False
 
         # otherwise its good
@@ -320,45 +325,76 @@ def is_valid(url):
         return False
 
 
-def is_dokuwiki_trap(url):
+def has_known_trap(url):
     """
-    Avoid DokuWiki utility pages that can generate large
-    numbers of low-information URL combinations.
+    detect known observed traps
+    - wiki version history/metadata
+    - calendar related pages
     """
     parsed = urlparse(url)
+    host = parsed.hostname
+    path = parsed.path.lower()
 
-    if parsed.hostname != "wiki.ics.uci.edu":
-        return False
-
-    if not parsed.path.startswith("/doku.php"):
-        return False
-
-    params = dict(parse_qsl(
-        parsed.query,
-        keep_blank_values=True
-    ))
-
-    blocked_actions = {
-        "media",
-        "diff",
-        "revisions",
-        "edit",
-        "backlink",
-        "recent",
-        "index",
-        "login",
+    params = {
+        key.lower(): value.lower()
+        for key, value in parse_qsl(
+            parsed.query,
+            keep_blank_values=True
+        )
     }
 
-    if params.get("do") in blocked_actions:
-        return True
+    # doku wiki metadata, version history
+    if host == "wiki.ics.uci.edu" and path.startswith("/doku.php"):
+        blocked_actions = {
+            "media", "diff", "revisions", "edit",
+            "backlink", "recent", "index", "login",
+        }
 
-    if any(
-        key in params
-        for key in ("rev", "rev2[0]", "rev2[1]", "idx")
-    ):
-        return True
+        if params.get("do") in blocked_actions:
+            return True
+
+        if any(
+            key in params
+            for key in ("rev", "rev2[0]", "rev2[1]", "idx")
+        ):
+            return True
+
+    # grape wiki version history, attachments
+    if host == "grape.ics.uci.edu" and path.startswith("/wiki/"):
+        if "version" in params:
+            return True
+
+        if params.get("format") == "txt":
+            return True
+
+        if re.search(r"/(?:zip|raw)-attachment/", path):
+            return True
+
+        if "/timeline" in path:
+            return True
+
+    # calendar
+    if "/events/" in path:
+        # calendar exports
+        if any(
+            key in params
+            for key in ("ical", "outlook-ical")
+        ):
+            return True
+
+        # arbitrary date-based navigation
+        if "tribe-bar-date" in params:
+            return True
+
+        # daily calendar pages
+        if re.search(
+            r"/events/(?:.*/)?day/\d{4}-\d{2}-\d{2}/?$",
+            path
+        ):
+            return True
 
     return False
+
 
 
 def normalize_url(url):
